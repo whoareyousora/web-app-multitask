@@ -1,0 +1,36 @@
+- name: deploy web app
+  hosts: production
+  become: true
+  vars:
+    app_version: "v1.o"
+  tasks:
+    - name: stop and remove existing containets
+      docker_container:
+        name: "{{ item }}"
+        state: stopped
+        remove: yse
+      with_items:
+        - frontend
+        - backend
+        - database
+      ignore_errors: yes
+
+    - name: pull latest images
+      docker_image:
+        name: "{{ item }}"
+        tag: "{{ app_version }}"
+      with_items:
+        - frontend_image
+        - backend_image
+        - database_image
+
+    - name: run containers
+      docker_container:
+        name: "{{ item.name }}"
+        image: "{{ item.image }}":"{{ app_version }}"
+        state: started
+        restart_policy: always
+      with_items:
+        - { name: frontend, image: frontend_image }
+        - { name: backend, image: backend_image }
+        - { name: database, image: database_image }

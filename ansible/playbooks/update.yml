@@ -1,0 +1,37 @@
+- name: update web app
+  hosts: production
+  become: true
+  vars:
+    app_version: "v1.1"
+  tasks:
+    - name: Pull latest images
+      docker_image:
+        name: "{{ item }}"
+        tag: "{{ app_version }}"
+      with_items:
+        - frontend_image
+        - backend_image
+        - database_image
+
+    - name: stop and remove existing containers
+      docker_container:
+        name: "{{ item }}"
+        state: stopped
+        remove: yes
+      with_items:
+        - frontend
+        - backend
+        - database
+      ignore_errors: yes
+
+    - name: run updated containers
+      docker_container:
+        name: "{{ item.name }}"
+        image: "{{ item.image }}:{{ app_version }}"
+        state: started
+        restart_policy: always
+      with_items:
+        - { name: frontend, image: frontend_image }
+        - { name: backend, image: backend_image }
+        - { name: database, image: database_image }
+
